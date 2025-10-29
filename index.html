@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PhishNet — Agentverse Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .spin { animation: spin 1s linear infinite }
+    @keyframes spin { from { transform: rotate(0) } to { transform: rotate(360deg) } }
+    .mono { font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div class="max-w-3xl mx-auto p-6">
+    <header class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold">PhishNet — Agentverse Demo</h1>
+      <button id="btn-settings" class="px-3 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800">
+        Settings
+      </button>
+    </header>
+
+    <section class="bg-white rounded-2xl shadow p-5 space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">URL to analyse</label>
+        <input id="input-url" type="url" placeholder="https://example.com/suspicious"
+               class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      </div>
+
+      <div class="flex flex-wrap gap-3">
+        <label class="inline-flex items-center gap-2">
+          <input type="radio" name="svc" value="intake" checked class="accent-indigo-600">
+          <span>Intake</span>
+        </label>
+        <label class="inline-flex items-center gap-2">
+          <input type="radio" name="svc" value="analyzer" class="accent-indigo-600">
+          <span>Analyzer</span>
+        </label>
+        <label class="inline-flex items-center gap-2">
+          <input type="radio" name="svc" value="referee" class="accent-indigo-600">
+          <span>Referee</span>
+        </label>
+        <label class="inline-flex items-center gap-2">
+          <input type="radio" name="svc" value="onchain" class="accent-indigo-600">
+          <span>On-chain</span>
+        </label>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="btn-analyze" class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50">Analyze</button>
+        <div id="spinner" class="hidden size-5 border-2 border-indigo-600 rounded-full border-t-transparent spin"></div>
+        <div id="hint" class="text-sm text-slate-500"></div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Response</label>
+        <pre id="out" class="mono text-sm bg-slate-900 text-slate-100 rounded-lg p-4 overflow-auto min-h-40 max-h-[50vh]"></pre>
+      </div>
+    </section>
+
+    <!-- Settings Drawer -->
+    <dialog id="dlg" class="rounded-2xl w-full max-w-2xl p-0">
+      <form method="dialog" class="bg-white rounded-2xl shadow-lg">
+        <div class="flex items-center justify-between px-5 py-4 border-b">
+          <h2 class="font-semibold">Settings</h2>
+          <button class="px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200">Close</button>
+        </div>
+        <div class="p-5 space-y-5">
+          <div class="grid grid-cols-1 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Agentverse Base URL</label>
+              <input id="baseUrl" type="url" placeholder="https://api.agentverse.example"
+                     class="w-full rounded-lg border border-slate-300 px-3 py-2">
+              <p class="text-xs text-slate-500 mt-1">The root of the Agentverse HTTP API.</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">API Key (Bearer)</label>
+              <input id="apiKey" type="password" placeholder="AV_...secret..."
+                     class="w-full rounded-lg border border-slate-300 px-3 py-2">
+              <p class="text-xs text-slate-500 mt-1">Stored locally in your browser only (localStorage) for this demo.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Intake Agent Address</label>
+              <input id="addrIntake" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="agentverse:addr:intake">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Analyzer Agent Address</label>
+              <input id="addrAnalyzer" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="agentverse:addr:analyzer">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Referee Agent Address</label>
+              <input id="addrReferee" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="agentverse:addr:referee">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">On-chain Agent Address</label>
+              <input id="addrOnchain" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="agentverse:addr:onchain">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Invoke Path Template</label>
+              <input id="invokePath" class="w-full rounded-lg border border-slate-300 px-3 py-2"
+                     value="/agents/{address}/invoke">
+              <p class="text-xs text-slate-500 mt-1">Use <code>{address}</code> placeholder.</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Request Type</label>
+              <input id="reqType" class="w-full rounded-lg border border-slate-300 px-3 py-2" value="AnalyzeRequest">
+              <p class="text-xs text-slate-500 mt-1">Message type your agents expect.</p>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Extra Request Fields (JSON)</label>
+            <textarea id="extraFields" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2 mono"
+                      placeholder='{"origin":"demo"}'></textarea>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <button id="btn-save" class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500" value="default">Save</button>
+            <button id="btn-clear" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200">Clear local settings</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+  </div>
+
+  <script>
+    const $ = sel => document.querySelector(sel);
+    const out = $('#out');
+    const spinner = $('#spinner');
+    const hint = $('#hint');
+    const dlg = $('#dlg');
+
+    const LS_KEY = 'phishnet_agentverse_settings_v1';
+
+    function loadSettings() {
+      try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); }
+      catch { return {}; }
+    }
+
+    function saveSettings(s) {
+      localStorage.setItem(LS_KEY, JSON.stringify(s));
+    }
+
+    function fillForm(s) {
+      $('#baseUrl').value = s.baseUrl || '';
+      $('#apiKey').value = s.apiKey || '';
+      $('#addrIntake').value = s.addrIntake || '';
+      $('#addrAnalyzer').value = s.addrAnalyzer || '';
+      $('#addrReferee').value = s.addrReferee || '';
+      $('#addrOnchain').value = s.addrOnchain || '';
+      $('#invokePath').value = s.invokePath || '/agents/{address}/invoke';
+      $('#reqType').value = s.reqType || 'AnalyzeRequest';
+      $('#extraFields').value = s.extraFields || '';
+    }
+
+    function readForm() {
+      return {
+        baseUrl: $('#baseUrl').value.trim(),
+        apiKey: $('#apiKey').value.trim(),
+        addrIntake: $('#addrIntake').value.trim(),
+        addrAnalyzer: $('#addrAnalyzer').value.trim(),
+        addrReferee: $('#addrReferee').value.trim(),
+        addrOnchain: $('#addrOnchain').value.trim(),
+        invokePath: $('#invokePath').value.trim() || '/agents/{address}/invoke',
+        reqType: $('#reqType').value.trim() || 'AnalyzeRequest',
+        extraFields: $('#extraFields').value.trim()
+      };
+    }
+
+    function addrFor(svc, s) {
+      return ({
+        intake: s.addrIntake,
+        analyzer: s.addrAnalyzer,
+        referee: s.addrReferee,
+        onchain: s.addrOnchain,
+      })[svc] || '';
+    }
+
+    function logJson(label, data) {
+      const pretty = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      out.textContent = (label ? (label + '\n') : '') + pretty;
+    }
+
+    async function analyze() {
+      const s = loadSettings();
+      const urlToTest = $('#input-url').value.trim();
+      const svc = document.querySelector('input[name="svc"]:checked').value;
+
+      if (!s.baseUrl) return logJson('', 'Set Agentverse Base URL in Settings.');
+      const address = addrFor(svc, s);
+      if (!address) return logJson('', `Set ${svc} agent address in Settings.`);
+      if (!urlToTest) return logJson('', 'Enter a URL to analyse.');
+
+      const path = (s.invokePath || '/agents/{address}/invoke').replace('{address}', encodeURIComponent(address));
+      const endpoint = s.baseUrl.replace(/\/+$/, '') + path;
+
+      let body = { type: s.reqType || 'AnalyzeRequest', url: urlToTest };
+      if (s.extraFields) {
+        try { Object.assign(body, JSON.parse(s.extraFields)); }
+        catch { return logJson('', 'Extra Request Fields: invalid JSON'); }
+      }
+
+      const headers = { 'Content-Type': 'application/json' };
+      if (s.apiKey) headers['Authorization'] = 'Bearer ' + s.apiKey;
+
+      spinner.classList.remove('hidden');
+      hint.textContent = 'Calling Agentverse…';
+
+      try {
+        const res = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body) });
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        logJson(`HTTP ${res.status}`, data);
+      } catch (e) {
+        logJson('Network error', String(e));
+      } finally {
+        spinner.classList.add('hidden');
+        hint.textContent = '';
+      }
+    }
+
+    // UI wiring
+    $('#btn-settings').addEventListener('click', () => {
+      fillForm(loadSettings()); dlg.showModal();
+    });
+    $('#btn-save').addEventListener('click', (e) => {
+      e.preventDefault();
+      saveSettings(readForm());
+      dlg.close();
+    });
+    $('#btn-clear').addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.removeItem(LS_KEY);
+      fillForm({});
+    });
+    $('#btn-analyze').addEventListener('click', analyze);
+
+    // First load
+    fillForm(loadSettings());
+  </script>
+</body>
+</html>
