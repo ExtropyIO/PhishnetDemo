@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PhishNet — Agentverse Demo</title>
+  <title>PhishNet — Agentverse / ECS Demo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .spin { animation: spin 1s linear infinite }
@@ -12,113 +12,135 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
-  <div class="max-w-3xl mx-auto p-6">
+  <div class="max-w-4xl mx-auto p-6">
     <header class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">PhishNet — Agentverse Demo</h1>
-      <button id="btn-settings" class="px-3 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800">
-        Settings
-      </button>
+      <h1 class="text-2xl font-bold">PhishNet — Agentverse / ECS Demo</h1>
+      <div class="flex items-center gap-3">
+        <span id="envBadge" class="text-xs px-2 py-1 rounded-full bg-slate-200">Mode: <b>Agentverse</b></span>
+        <button id="btn-settings" class="px-3 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800">Settings</button>
+      </div>
     </header>
 
     <section class="bg-white rounded-2xl shadow p-5 space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">URL to analyse</label>
-        <input id="input-url" type="url" placeholder="https://example.com/suspicious"
-               class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-      </div>
-
-      <div class="flex flex-wrap gap-3">
-        <label class="inline-flex items-center gap-2">
-          <input type="radio" name="svc" value="intake" checked class="accent-indigo-600">
-          <span>Intake</span>
-        </label>
-        <label class="inline-flex items-center gap-2">
-          <input type="radio" name="svc" value="analyzer" class="accent-indigo-600">
-          <span>Analyzer</span>
-        </label>
-        <label class="inline-flex items-center gap-2">
-          <input type="radio" name="svc" value="referee" class="accent-indigo-600">
-          <span>Referee</span>
-        </label>
-        <label class="inline-flex items-center gap-2">
-          <input type="radio" name="svc" value="onchain" class="accent-indigo-600">
-          <span>On-chain</span>
-        </label>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">URL to analyse</label>
+          <input id="input-url" type="url" placeholder="https://example.com/suspicious"
+                 class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Agent role</label>
+          <div class="flex flex-wrap gap-3">
+            <label class="inline-flex items-center gap-2"><input type="radio" name="svc" value="intake" checked class="accent-indigo-600"><span>Intake</span></label>
+            <label class="inline-flex items-center gap-2"><input type="radio" name="svc" value="analyzer" class="accent-indigo-600"><span>Analyzer</span></label>
+            <label class="inline-flex items-center gap-2"><input type="radio" name="svc" value="referee" class="accent-indigo-600"><span>Referee</span></label>
+            <label class="inline-flex items-center gap-2"><input type="radio" name="svc" value="onchain" class="accent-indigo-600"><span>On‑chain</span></label>
+          </div>
+        </div>
       </div>
 
       <div class="flex items-center gap-3">
         <button id="btn-analyze" class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50">Analyze</button>
+        <button id="btn-resolve" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200">Resolve / Health</button>
+        <label class="inline-flex items-center gap-2 text-sm text-slate-600"><input id="chk-dryrun" type="checkbox" class="accent-indigo-600">Dry‑run (show request only)</label>
         <div id="spinner" class="hidden size-5 border-2 border-indigo-600 rounded-full border-t-transparent spin"></div>
         <div id="hint" class="text-sm text-slate-500"></div>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Response</label>
-        <pre id="out" class="mono text-sm bg-slate-900 text-slate-100 rounded-lg p-4 overflow-auto min-h-40 max-h-[50vh]"></pre>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Request</label>
+          <pre id="req" class="mono text-xs bg-slate-900 text-slate-100 rounded-lg p-3 overflow-auto min-h-40 max-h-[50vh]"></pre>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Response</label>
+          <pre id="out" class="mono text-xs bg-slate-900 text-slate-100 rounded-lg p-3 overflow-auto min-h-40 max-h-[50vh]"></pre>
+        </div>
       </div>
     </section>
 
     <!-- Settings Drawer -->
-    <dialog id="dlg" class="rounded-2xl w-full max-w-2xl p-0">
+    <dialog id="dlg" class="rounded-2xl w-full max-w-3xl p-0">
       <form method="dialog" class="bg-white rounded-2xl shadow-lg">
         <div class="flex items-center justify-between px-5 py-4 border-b">
           <h2 class="font-semibold">Settings</h2>
           <button class="px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200">Close</button>
         </div>
-        <div class="p-5 space-y-5">
-          <div class="grid grid-cols-1 gap-4">
+        <div class="p-5 space-y-6">
+          <fieldset class="space-y-2">
+            <legend class="text-sm font-medium text-slate-700">Backend Mode</legend>
+            <div class="flex flex-wrap gap-4">
+              <label class="inline-flex items-center gap-2"><input type="radio" name="mode" value="agentverse" checked class="accent-indigo-600"><span>Agentverse Proxy</span></label>
+              <label class="inline-flex items-center gap-2"><input type="radio" name="mode" value="ecs" class="accent-indigo-600"><span>AWS ECS (direct)</span></label>
+            </div>
+          </fieldset>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium mb-1">Agentverse Base URL</label>
-              <input id="baseUrl" type="url" placeholder="https://api.agentverse.example"
-                     class="w-full rounded-lg border border-slate-300 px-3 py-2">
-              <p class="text-xs text-slate-500 mt-1">The root of the Agentverse HTTP API.</p>
+              <input id="baseUrl" type="url" placeholder="https://agentverse.ai/v1" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+              <p class="text-xs text-slate-500 mt-1">Root of Agentverse HTTP API (default <code>https://agentverse.ai/v1</code>).</p>
             </div>
             <div>
               <label class="block text-sm font-medium mb-1">API Key (Bearer)</label>
-              <input id="apiKey" type="password" placeholder="AV_...secret..."
-                     class="w-full rounded-lg border border-slate-300 px-3 py-2">
-              <p class="text-xs text-slate-500 mt-1">Stored locally in your browser only (localStorage) for this demo.</p>
+              <input id="apiKey" type="password" placeholder="AV_...secret..." class="w-full rounded-lg border border-slate-300 px-3 py-2">
+              <p class="text-xs text-slate-500 mt-1">Stored in localStorage for this demo.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">From (client id)</label>
+              <input id="fromId" class="w-full rounded-lg border border-slate-300 px-3 py-2" value="client:demo">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Protocol Digest</label>
+              <input id="protocol" class="w-full rounded-lg border border-slate-300 px-3 py-2" value="chat-protocol-v1">
             </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium mb-1">Intake Agent Address</label>
-              <input id="addrIntake" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="agentverse:addr:intake">
+              <input id="addrIntake" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="agent1q...">
             </div>
             <div>
               <label class="block text-sm font-medium mb-1">Analyzer Agent Address</label>
-              <input id="addrAnalyzer" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="agentverse:addr:analyzer">
+              <input id="addrAnalyzer" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="agent1q...">
             </div>
             <div>
               <label class="block text-sm font-medium mb-1">Referee Agent Address</label>
-              <input id="addrReferee" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="agentverse:addr:referee">
+              <input id="addrReferee" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="agent1q...">
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">On-chain Agent Address</label>
-              <input id="addrOnchain" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="agentverse:addr:onchain">
+              <label class="block text-sm font-medium mb-1">On‑chain Agent Address</label>
+              <input id="addrOnchain" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="agent1q...">
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Invoke Path Template</label>
-              <input id="invokePath" class="w-full rounded-lg border border-slate-300 px-3 py-2"
-                     value="/agents/{address}/invoke">
-              <p class="text-xs text-slate-500 mt-1">Use <code>{address}</code> placeholder.</p>
+          <fieldset class="border rounded-xl p-4 space-y-4">
+            <legend class="px-2 text-sm font-semibold">ECS (direct) options</legend>
+            <div class="grid md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">ECS Base URL</label>
+                <input id="ecsBase" type="url" placeholder="http://<ALB>" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                <p class="text-xs text-slate-500 mt-1">Your ALB origin, e.g. <code>http://phishnet-alb-123.eu-west-1.elb.amazonaws.com</code></p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Invoke Path Template</label>
+                <input id="invokePath" class="w-full rounded-lg border border-slate-300 px-3 py-2" value="/{service}/invoke">
+                <p class="text-xs text-slate-500 mt-1">Use <code>{service}</code> placeholder (e.g. intake, analyzer …).</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Request Type</label>
+                <input id="reqType" class="w-full rounded-lg border border-slate-300 px-3 py-2" value="AnalyzeRequest">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Extra Request Fields (JSON)</label>
+                <textarea id="extraFields" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 mono" placeholder='{"origin":"demo"}'></textarea>
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Request Type</label>
-              <input id="reqType" class="w-full rounded-lg border border-slate-300 px-3 py-2" value="AnalyzeRequest">
-              <p class="text-xs text-slate-500 mt-1">Message type your agents expect.</p>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Extra Request Fields (JSON)</label>
-            <textarea id="extraFields" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2 mono"
-                      placeholder='{"origin":"demo"}'></textarea>
-          </div>
+          </fieldset>
 
           <div class="flex items-center justify-between">
             <button id="btn-save" class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500" value="default">Save</button>
@@ -132,117 +154,171 @@
   <script>
     const $ = sel => document.querySelector(sel);
     const out = $('#out');
+    const reqEl = $('#req');
     const spinner = $('#spinner');
     const hint = $('#hint');
     const dlg = $('#dlg');
+    const envBadge = $('#envBadge');
 
-    const LS_KEY = 'phishnet_agentverse_settings_v1';
+    const LS_KEY = 'phishnet_settings_v2';
 
-    function loadSettings() {
-      try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); }
-      catch { return {}; }
-    }
-
-    function saveSettings(s) {
-      localStorage.setItem(LS_KEY, JSON.stringify(s));
-    }
+    function loadSettings() { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; } }
+    function saveSettings(s) { localStorage.setItem(LS_KEY, JSON.stringify(s)); }
 
     function fillForm(s) {
-      $('#baseUrl').value = s.baseUrl || '';
+      const mode = s.mode || 'agentverse';
+      document.querySelectorAll('input[name="mode"]').forEach(r => r.checked = r.value === mode);
+      $('#baseUrl').value = s.baseUrl || 'https://agentverse.ai/v1';
       $('#apiKey').value = s.apiKey || '';
+      $('#fromId').value = s.fromId || 'client:demo';
+      $('#protocol').value = s.protocol || 'chat-protocol-v1';
       $('#addrIntake').value = s.addrIntake || '';
       $('#addrAnalyzer').value = s.addrAnalyzer || '';
       $('#addrReferee').value = s.addrReferee || '';
       $('#addrOnchain').value = s.addrOnchain || '';
-      $('#invokePath').value = s.invokePath || '/agents/{address}/invoke';
+      $('#ecsBase').value = s.ecsBase || '';
+      $('#invokePath').value = s.invokePath || '/{service}/invoke';
       $('#reqType').value = s.reqType || 'AnalyzeRequest';
       $('#extraFields').value = s.extraFields || '';
+      setModeBadge(mode);
     }
 
     function readForm() {
+      const mode = document.querySelector('input[name="mode"]:checked')?.value || 'agentverse';
       return {
-        baseUrl: $('#baseUrl').value.trim(),
+        mode,
+        baseUrl: $('#baseUrl').value.trim() || 'https://agentverse.ai/v1',
         apiKey: $('#apiKey').value.trim(),
+        fromId: $('#fromId').value.trim() || 'client:demo',
+        protocol: $('#protocol').value.trim() || 'chat-protocol-v1',
         addrIntake: $('#addrIntake').value.trim(),
         addrAnalyzer: $('#addrAnalyzer').value.trim(),
         addrReferee: $('#addrReferee').value.trim(),
         addrOnchain: $('#addrOnchain').value.trim(),
-        invokePath: $('#invokePath').value.trim() || '/agents/{address}/invoke',
+        ecsBase: $('#ecsBase').value.trim(),
+        invokePath: $('#invokePath').value.trim() || '/{service}/invoke',
         reqType: $('#reqType').value.trim() || 'AnalyzeRequest',
-        extraFields: $('#extraFields').value.trim()
+        extraFields: $('#extraFields').value.trim(),
       };
     }
 
-    function addrFor(svc, s) {
-      return ({
-        intake: s.addrIntake,
-        analyzer: s.addrAnalyzer,
-        referee: s.addrReferee,
-        onchain: s.addrOnchain,
-      })[svc] || '';
+    function setModeBadge(mode) {
+      envBadge.innerHTML = `Mode: <b>${mode === 'agentverse' ? 'Agentverse' : 'ECS'}</b>`;
+      envBadge.className = 'text-xs px-2 py-1 rounded-full ' + (mode === 'agentverse' ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800');
     }
 
-    function logJson(label, data) {
+    function addrFor(svc, s) {
+      return ({ intake: s.addrIntake, analyzer: s.addrAnalyzer, referee: s.addrReferee, onchain: s.addrOnchain })[svc] || '';
+    }
+
+    function logJson(el, data) {
       const pretty = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-      out.textContent = (label ? (label + '\n') : '') + pretty;
+      el.textContent = pretty;
+    }
+
+    function buildAgentverseEnvelope(urlToTest, address, s) {
+      return {
+        to: address,
+        from: s.fromId || 'client:demo',
+        protocol_digest: s.protocol || 'chat-protocol-v1',
+        message: {
+          type: 'chat_message',
+          content: [{ type: 'text', text: `Analyze ${urlToTest}` }]
+        }
+      };
+    }
+
+    function buildEcsBody(urlToTest, s) {
+      let body = { type: s.reqType || 'AnalyzeRequest', url: urlToTest };
+      if (s.extraFields) {
+        try { Object.assign(body, JSON.parse(s.extraFields)); }
+        catch { throw new Error('Extra Request Fields: invalid JSON'); }
+      }
+      return body;
     }
 
     async function analyze() {
       const s = loadSettings();
       const urlToTest = $('#input-url').value.trim();
       const svc = document.querySelector('input[name="svc"]:checked').value;
-
-      if (!s.baseUrl) return logJson('', 'Set Agentverse Base URL in Settings.');
-      const address = addrFor(svc, s);
-      if (!address) return logJson('', `Set ${svc} agent address in Settings.`);
-      if (!urlToTest) return logJson('', 'Enter a URL to analyse.');
-
-      const path = (s.invokePath || '/agents/{address}/invoke').replace('{address}', encodeURIComponent(address));
-      const endpoint = s.baseUrl.replace(/\/+$/, '') + path;
-
-      let body = { type: s.reqType || 'AnalyzeRequest', url: urlToTest };
-      if (s.extraFields) {
-        try { Object.assign(body, JSON.parse(s.extraFields)); }
-        catch { return logJson('', 'Extra Request Fields: invalid JSON'); }
-      }
-
-      const headers = { 'Content-Type': 'application/json' };
-      if (s.apiKey) headers['Authorization'] = 'Bearer ' + s.apiKey;
+      if (!urlToTest) return logJson(out, 'Enter a URL to analyse.');
 
       spinner.classList.remove('hidden');
-      hint.textContent = 'Calling Agentverse…';
+      hint.textContent = s.mode === 'agentverse' ? 'Calling Agentverse…' : 'Calling ECS service…';
 
       try {
+        let endpoint, headers = { 'Content-Type': 'application/json' }, body;
+
+        if (s.mode === 'agentverse') {
+          // Agentverse proxy
+          const address = addrFor(svc, s);
+          if (!address) throw new Error(`Set ${svc} agent address in Settings.`);
+          endpoint = (s.baseUrl || 'https://agentverse.ai/v1').replace(/\/+$/, '') + '/proxy/submit';
+          body = buildAgentverseEnvelope(urlToTest, address, s);
+          if (s.apiKey) headers['Authorization'] = 'Bearer ' + s.apiKey;
+        } else {
+          // ECS direct
+          if (!s.ecsBase) throw new Error('Set ECS Base URL in Settings.');
+          const path = (s.invokePath || '/{service}/invoke').replace('{service}', encodeURIComponent(svc));
+          endpoint = s.ecsBase.replace(/\/+$/, '') + path;
+          body = buildEcsBody(urlToTest, s);
+        }
+
+        logJson(reqEl, { endpoint, headers: { ...headers, ...(headers.Authorization ? { Authorization: 'Bearer ***' } : {}) }, body });
+
+        if ($('#chk-dryrun').checked) {
+          logJson(out, 'Dry‑run: request not sent.');
+          return;
+        }
+
         const res = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body) });
         const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); } catch { data = { raw: text }; }
-        logJson(`HTTP ${res.status}`, data);
+        let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        logJson(out, { status: res.status, ok: res.ok, data });
       } catch (e) {
-        logJson('Network error', String(e));
+        logJson(out, 'Error: ' + e.message);
       } finally {
         spinner.classList.add('hidden');
         hint.textContent = '';
       }
     }
 
-    // UI wiring
-    $('#btn-settings').addEventListener('click', () => {
-      fillForm(loadSettings()); dlg.showModal();
-    });
-    $('#btn-save').addEventListener('click', (e) => {
-      e.preventDefault();
-      saveSettings(readForm());
-      dlg.close();
-    });
-    $('#btn-clear').addEventListener('click', (e) => {
-      e.preventDefault();
-      localStorage.removeItem(LS_KEY);
-      fillForm({});
-    });
-    $('#btn-analyze').addEventListener('click', analyze);
+    async function resolveOrHealth() {
+      const s = loadSettings();
+      const svc = document.querySelector('input[name="svc"]:checked').value;
+      try {
+        let info = {};
+        if ((s.mode || 'agentverse') === 'agentverse') {
+          const base = (s.baseUrl || 'https://agentverse.ai/v1').replace(/\/+$/, '');
+          const address = addrFor(svc, s);
+          if (!address) throw new Error(`Set ${svc} agent address in Settings.`);
+          const url = `${base}/proxy/resolve/${encodeURIComponent(address)}`;
+          const headers = s.apiKey ? { Authorization: 'Bearer ' + s.apiKey } : {};
+          const res = await fetch(url, { headers });
+          info = { endpoint: url, status: res.status, data: await res.json().catch(() => ({})) };
+        } else {
+          const base = (s.ecsBase || '').replace(/\/+$/, '');
+          if (!base) throw new Error('Set ECS Base URL in Settings.');
+          const url = `${base}/${svc}/health`;
+          const res = await fetch(url);
+          const text = await res.text();
+          let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+          info = { endpoint: url, status: res.status, data };
+        }
+        logJson(out, info);
+      } catch (e) {
+        logJson(out, 'Error: ' + e.message);
+      }
+    }
 
-    // First load
+    // UI wiring
+    $('#btn-settings').addEventListener('click', () => { fillForm(loadSettings()); dlg.showModal(); });
+    $('#btn-save').addEventListener('click', (e) => { e.preventDefault(); const s = readForm(); saveSettings(s); setModeBadge(s.mode); dlg.close(); });
+    $('#btn-clear').addEventListener('click', (e) => { e.preventDefault(); localStorage.removeItem(LS_KEY); fillForm({}); });
+    $('#btn-analyze').addEventListener('click', analyze);
+    $('#btn-resolve').addEventListener('click', resolveOrHealth);
+
+    // Init
     fillForm(loadSettings());
   </script>
 </body>
