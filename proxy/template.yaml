@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: PhishNet Agentverse secure proxy (Lambda + API Gateway)
+
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    Timeout: 15
+    MemorySize: 256
+    Architectures:
+      - x86_64
+
+Resources:
+  ProxyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: index.handler
+      Environment:
+        Variables:
+          AGENTVERSE_API_KEY: ""
+      Events:
+        Submit:
+          Type: Api
+          Properties:
+            Path: /submit
+            Method: POST
+            Cors: "'*'"
+        Resolve:
+          Type: Api
+          Properties:
+            Path: /resolve/{address}
+            Method: GET
+            Cors: "'*'"
+
+Outputs:
+  ApiUrl:
+    Description: Invoke URL
+    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
