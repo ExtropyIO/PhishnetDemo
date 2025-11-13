@@ -25,10 +25,12 @@ export function buildAgentverseEnvelope(urlToTest: string, address: string) {
     sender: CFG.SENDER,
     target: address,
     session,
+    schema_digest: CFG.SCHEMA_DIGEST || undefined,     // ADD THIS LINE
     protocol_digest: CFG.PROTOCOL_DIGEST || undefined,
     payload
   }
 }
+
 export function buildEcsBody(urlToTest: string) {
   const body: any = { type: CFG.ECS_REQ_TYPE, url: urlToTest }
   if (CFG.ECS_EXTRA) {
