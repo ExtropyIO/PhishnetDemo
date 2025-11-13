@@ -7,9 +7,14 @@ function safePreviewHeaders(h: Record<string,string>) {
 }
 
 export function buildAgentverseEnvelope(urlToTest: string, address: string) {
-  // AgentChatProtocol expects: content (array), msg_id, timestamp
+  // CPChatMessage format from uagents_core.contrib.protocols.chat
   const msg = {
-    content: [urlToTest],  // or ["Analyze", urlToTest] as separate items
+    content: [
+      {
+        type: "text",
+        text: urlToTest  // Just send the URL directly
+      }
+    ],
     msg_id: (crypto as any)?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
     timestamp: new Date().toISOString()
   }
@@ -20,12 +25,10 @@ export function buildAgentverseEnvelope(urlToTest: string, address: string) {
     sender: CFG.SENDER,
     target: address,
     session,
-    schema_digest: CFG.SCHEMA_DIGEST,
     protocol_digest: CFG.PROTOCOL_DIGEST || undefined,
     payload
   }
 }
-
 export function buildEcsBody(urlToTest: string) {
   const body: any = { type: CFG.ECS_REQ_TYPE, url: urlToTest }
   if (CFG.ECS_EXTRA) {
