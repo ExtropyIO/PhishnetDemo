@@ -1,0 +1,6 @@
+frontend/node_modules
+proxy/.aws-sam/build/
+proxy/node_modules/
+frontend/.env.local
+.env
+.env.local
