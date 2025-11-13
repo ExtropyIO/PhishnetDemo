@@ -7,9 +7,11 @@ function safePreviewHeaders(h: Record<string,string>) {
 }
 
 export function buildAgentverseEnvelope(urlToTest: string, address: string) {
+  // AgentChatProtocol expects: content (array), msg_id, timestamp
   const msg = {
-    type: 'chat_message',
-    content: [{ type: 'text', text: `Analyze ${urlToTest}` }]
+    content: [urlToTest],  // or ["Analyze", urlToTest] as separate items
+    msg_id: (crypto as any)?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+    timestamp: new Date().toISOString()
   }
   const payload = btoa(unescape(encodeURIComponent(JSON.stringify(msg))))
   const session = (crypto as any)?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`

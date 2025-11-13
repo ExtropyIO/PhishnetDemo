@@ -2,38 +2,98 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: PhishNet Agentverse secure proxy (Lambda + API Gateway)
 
-Globals:
-  Function:
-    Runtime: nodejs18.x
-    Timeout: 15
-    MemorySize: 256
-    Architectures:
-      - x86_64
+Parameters:
+  AgentverseApiKey:
+    Type: String
+    NoEcho: true
+    Description: Agentverse API key (kept private)
 
 Resources:
+  # API Gateway (single REST API)
+  PublicApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowOrigin: "'*'"
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+
+  # Lambda function (package project root so node_modules are included)
   ProxyFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/
-      Handler: index.handler
+      Runtime: nodejs18.x
+      Timeout: 15
+      MemorySize: 256
+      CodeUri: .
+      Handler: src/index.handler
       Environment:
         Variables:
-          AGENTVERSE_API_KEY: ""
+          AGENTVERSE_API_KEY: !Ref AgentverseApiKey
       Events:
+        # Submit envelope to Agentverse proxy
         Submit:
           Type: Api
           Properties:
+            RestApiId: !Ref PublicApi
             Path: /submit
             Method: POST
-            Cors: "'*'"
+
+        # Resolve a proxy agent address via Agentverse proxy
         Resolve:
           Type: Api
           Properties:
+            RestApiId: !Ref PublicApi
             Path: /resolve/{address}
             Method: GET
-            Cors: "'*'"
+
+        # Fetch full agent profile (includes protocol digests)
+        Search:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PublicApi
+            Path: /search/agents/{address}
+            Method: GET
+
+        # Almanac manifest digests (schema/protocol manifests)
+        AlmanacDigests:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PublicApi
+            Path: /almanac/manifests/digests
+            Method: GET
+
+        # OPTIONS / CORS endpoints to satisfy preflight requests
+        SubmitOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PublicApi
+            Path: /submit
+            Method: OPTIONS
+
+        ResolveOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PublicApi
+            Path: /resolve/{address}
+            Method: OPTIONS
+
+        SearchOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PublicApi
+            Path: /search/agents/{address}
+            Method: OPTIONS
+
+        AlmanacDigestsOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PublicApi
+            Path: /almanac/manifests/digests
+            Method: OPTIONS
 
 Outputs:
   ApiUrl:
     Description: Invoke URL
-    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
+    Value: !Sub https://${PublicApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
